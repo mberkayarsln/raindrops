@@ -122,6 +122,16 @@ final class RainSimulation {
         lightning.renderBolt(into: &segments)
     }
 
+    func reset() {
+        drops.removeAll(keepingCapacity: true)
+        splashes.removeAll(keepingCapacity: true)
+        puddles.reset()
+        pool.reset()
+        lightning = LightningEffect()
+        spawnAccumulator = 0
+        liveRainCount = 0
+    }
+
     func prefillPool(fraction: Float) {
         pool.prefill(level: fraction * size.y)
     }

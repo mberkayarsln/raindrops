@@ -17,6 +17,11 @@ final class PuddleSystem {
         puddles.values.reduce(0) { max($0, $1.maximumDepth) }
     }
 
+    func reset() {
+        puddles.removeAll()
+        emittedDrops.removeAll(keepingCapacity: true)
+    }
+
     func clearEmitted() {
         emittedDrops.removeAll(keepingCapacity: true)
     }

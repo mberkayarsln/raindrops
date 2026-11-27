@@ -11,6 +11,7 @@ final class OverlayManager {
     private var activeScreenSelection: ScreenSelection?
     private let spaceTracker = SpaceTracker()
     private var hostSpaceID: Int?
+    private var wasEnabled = true
     private let sound = RainSoundEngine()
     private let storm = StormController()
 
@@ -20,6 +21,7 @@ final class OverlayManager {
     }
 
     func start() {
+        wasEnabled = settings.isEnabled
         storm.onStrike = { [weak self] strike in
             self?.deliver(strike)
         }
@@ -58,6 +60,7 @@ final class OverlayManager {
 
     private func updateAmbience() {
         let active = shouldRender && overlays.contains { $0.isRendering }
+        FrameDiagnostics.log("ambience active=\(active) shouldRender=\(shouldRender) rendering=\(overlays.map(\.isRendering)) sound=\(settings.isSoundEnabled)")
         sound.update(
             isActive: active && settings.isSoundEnabled,
             profile: SoundProfile(intensity: settings.intensity, wind: Float(settings.wind)),
@@ -93,6 +96,10 @@ final class OverlayManager {
     }
 
     private func handleSettingsChange() {
+        if settings.isEnabled && !wasEnabled {
+            overlays.forEach { $0.resetSimulation() }
+        }
+        wasEnabled = settings.isEnabled
         if activeScreenSelection != settings.screenSelection {
             rebuildOverlays()
             return

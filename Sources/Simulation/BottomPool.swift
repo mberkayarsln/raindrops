@@ -123,8 +123,9 @@ final class BottomPool {
         }
     }
 
-    private func reset() {
+    func reset() {
         level = 0
+        accumulator = 0
         for index in offsets.indices {
             offsets[index] = 0
             velocities[index] = 0

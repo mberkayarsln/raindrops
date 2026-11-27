@@ -62,6 +62,10 @@ final class ScreenOverlay: NSObject {
         displayLink.map { !$0.isPaused } ?? false
     }
 
+    func resetSimulation() {
+        simulation.reset()
+    }
+
     func strike(_ strike: LightningStrike, showsBolt: Bool) {
         guard isRendering else { return }
         simulation.strike(strike, showsBolt: showsBolt)
