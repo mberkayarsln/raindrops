@@ -16,10 +16,10 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     private var soundItem = NSMenuItem()
     private var stormItem = NSMenuItem()
     private var strikeItem = NSMenuItem()
-    private var volumeSlider = NSSlider()
+    private var volumeSlider = MenuSlider()
 
-    private var windSlider = NSSlider()
-    private var poolLevelSlider = NSSlider()
+    private var windSlider = MenuSlider()
+    private var poolLevelSlider = MenuSlider()
     private var poolLevelLabel = NSTextField(labelWithString: "")
     private var windLabel = NSTextField(labelWithString: "")
 
@@ -35,6 +35,18 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
 
     func menuNeedsUpdate(_ menu: NSMenu) {
         refreshState()
+    }
+
+    func menuWillOpen(_ menu: NSMenu) {
+        sliders.forEach { $0.endTrackingAppearance() }
+    }
+
+    func menuDidClose(_ menu: NSMenu) {
+        sliders.forEach { $0.endTrackingAppearance() }
+    }
+
+    private var sliders: [MenuSlider] {
+        [windSlider, poolLevelSlider, volumeSlider]
     }
 
     private func buildMenu() {
@@ -135,8 +147,8 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         return item
     }
 
-    private func makeSlider(range: ClosedRange<Double>, action: Selector) -> NSSlider {
-        let slider = NSSlider(value: range.lowerBound, minValue: range.lowerBound, maxValue: range.upperBound, target: self, action: action)
+    private func makeSlider(range: ClosedRange<Double>, action: Selector) -> MenuSlider {
+        let slider = MenuSlider(value: range.lowerBound, minValue: range.lowerBound, maxValue: range.upperBound, target: self, action: action)
         slider.isContinuous = true
         slider.controlSize = .small
         return slider
@@ -286,4 +298,17 @@ private enum SliderLayout {
     static let textLeading: CGFloat = 28
     static let sliderLeading: CGFloat = 30
     static let trailing: CGFloat = 16
+}
+
+final class MenuSlider: NSSlider {
+    override func mouseDown(with event: NSEvent) {
+        super.mouseDown(with: event)
+        endTrackingAppearance()
+    }
+
+    func endTrackingAppearance() {
+        cell?.isHighlighted = false
+        (cell as? NSSliderCell)?.stopTracking(last: .zero, current: .zero, in: self, mouseIsUp: true)
+        needsDisplay = true
+    }
 }
