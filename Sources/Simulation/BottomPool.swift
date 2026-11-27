@@ -48,6 +48,10 @@ final class BottomPool {
         return max(level + offset * waveScale, 0)
     }
 
+    func prefill(level newLevel: Float) {
+        level = min(max(newLevel, 0), maximumLevel)
+    }
+
     func receive(volume: Float, atX x: Float, impulse: Float, radius: Float) {
         guard isEnabled else { return }
         level = min(level + volume / max(width, 1), maximumLevel)

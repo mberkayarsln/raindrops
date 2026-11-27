@@ -125,27 +125,44 @@ fragment float4 waterFragment(
 ) {
     float depth = max(in.depth, 0.0);
     float pixel = 1.0 / uniforms.pixelScale;
-    float deepness = saturate(depth / 70.0);
-    float3 shallowColor = float3(0.56, 0.74, 0.90);
-    float3 deepColor = float3(0.14, 0.30, 0.50);
-    float3 color = mix(shallowColor, deepColor, deepness);
-    float alpha = mix(0.24, 0.52, deepness);
+    float absorption = 1.0 - exp(-depth / 140.0);
+    float shallow = 1.0 - saturate(depth / 70.0);
+    float3 surfaceColor = float3(0.56, 0.74, 0.90);
+    float3 midColor = float3(0.16, 0.36, 0.56);
+    float3 abyssColor = float3(0.04, 0.12, 0.24);
+    float3 color = mix(surfaceColor, midColor, saturate(depth / 70.0));
+    color = mix(color, abyssColor, saturate((depth - 70.0) / 260.0));
+    float alpha = mix(0.24, 0.62, absorption);
 
     float2 refracted = in.world + float2(sin(in.world.y * 0.21 + uniforms.time * 2.3) * 2.5, 0.0);
     float caustic = causticPattern(refracted, uniforms.time);
-    color += caustic * 0.09 * (1.0 - deepness * 0.6);
-    alpha += caustic * 0.03;
+    float causticFade = exp(-depth / 90.0);
+    color += caustic * 0.09 * causticFade;
+    alpha += caustic * 0.03 * causticFade;
+
+    float shaftCoordinate = in.world.x + depth * 0.35;
+    float shaftA = sin(shaftCoordinate * 0.021 + uniforms.time * 0.23 + sin(shaftCoordinate * 0.006 + uniforms.time * 0.11) * 2.0);
+    float shaftB = sin(shaftCoordinate * 0.047 - uniforms.time * 0.17);
+    float shafts = smoothstep(0.55, 1.0, shaftA * 0.7 + shaftB * 0.3);
+    float shaftVisibility = smoothstep(25.0, 90.0, depth) * exp(-depth / 320.0);
+    color += float3(0.55, 0.75, 0.95) * shafts * shaftVisibility * 0.16;
+
+    float murk = sin(in.world.x * 0.013 + in.world.y * 0.017 + uniforms.time * 0.07) * sin(in.world.y * 0.011 - uniforms.time * 0.05);
+    color *= 1.0 + murk * 0.05 * absorption;
 
     float refractionBand = smoothstep(1.4, 3.5, depth) * (1.0 - smoothstep(3.5, 9.0, depth));
     float bandWobble = 0.5 + 0.5 * sin(in.world.x * 0.07 - uniforms.time * 1.6);
     color = mix(color, color * 0.72, refractionBand * (0.4 + 0.3 * bandWobble));
     alpha += refractionBand * 0.07;
 
+    float subsurface = smoothstep(2.0, 6.0, depth) * (1.0 - smoothstep(6.0, 26.0, depth)) * (1.0 - shallow * 0.5);
+    color += float3(0.35, 0.55, 0.70) * subsurface * 0.12;
+
     float highlight = 1.0 - smoothstep(max(0.9, pixel * 1.5) * 0.5, max(1.6, pixel * 2.5), depth);
     color = mix(color, float3(0.93, 0.97, 1.0), highlight);
     alpha = max(alpha, highlight * 0.8);
 
-    alpha *= in.opacity;
+    alpha = min(alpha, 0.72) * in.opacity;
     return float4(color * alpha, alpha);
 }
 """

@@ -75,7 +75,7 @@ final class AppSettings {
     static func nearestWindLevel(to value: Double) -> Double {
         windLevels.min { abs($0 - value) < abs($1 - value) } ?? 0
     }
-    static let poolFractionRange: ClosedRange<Double> = 0.02...0.2
+    static let poolFractionRange: ClosedRange<Double> = 0.02...0.5
     static let volumeRange: ClosedRange<Double> = 0...1
 
     private enum Key {

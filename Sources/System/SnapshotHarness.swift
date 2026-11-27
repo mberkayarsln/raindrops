@@ -12,6 +12,7 @@ struct SnapshotRequest {
     let usesLiveWindows: Bool
     let strikeDistance: Float?
     let wind: Float?
+    let poolLevel: Float?
 
     init?(arguments: [String]) {
         guard let index = arguments.firstIndex(of: "--snapshot"), index + 1 < arguments.count else { return nil }
@@ -27,6 +28,9 @@ struct SnapshotRequest {
             index + 1 < arguments.count ? Float(arguments[index + 1]) : nil
         }
         wind = arguments.firstIndex(of: "--wind").flatMap { index in
+            index + 1 < arguments.count ? Float(arguments[index + 1]) : nil
+        }
+        poolLevel = arguments.firstIndex(of: "--pool-level").flatMap { index in
             index + 1 < arguments.count ? Float(arguments[index + 1]) : nil
         }
         scale = 2
@@ -56,7 +60,11 @@ final class SnapshotHarness {
         configuration.maximumDropCount = 2000
         configuration.isPoolEnabled = true
         configuration.wind = request.wind ?? configuration.wind
+        if let poolLevel = request.poolLevel {
+            configuration.poolMaximumFraction = max(poolLevel, configuration.poolMaximumFraction)
+        }
         let simulation = RainSimulation(size: size, configuration: configuration)
+        request.poolLevel.map(simulation.prefillPool(fraction:))
         let cost = advance(simulation)
         strikeIfRequested(simulation)
         print("snapshot frames=\(request.frames) meanStepMs=\(String(format: "%.3f", cost * 1000)) \(simulation.diagnosticSummary)")

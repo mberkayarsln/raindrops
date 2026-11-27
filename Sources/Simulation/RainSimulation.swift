@@ -52,7 +52,7 @@ final class RainSimulation {
         lightning.advance(dt: dt)
         updateWind(dt: dt, clock: clock, originX: screenOrigin.x)
         activeCursor = configuration.isCursorInteractionEnabled ? cursor : nil
-        scene.rebuild(from: windows, screenOrigin: screenOrigin, screenSize: size)
+        scene.rebuild(from: windows, screenOrigin: screenOrigin, screenSize: size, waterline: pool.isVisible ? pool.level : 0)
         puddles.synchronize(with: scene)
         collectEmittedDrops()
         spawnRain(dt: dt)
@@ -120,6 +120,10 @@ final class RainSimulation {
         renderDrops(into: &segments)
         renderSplashes(into: &segments)
         lightning.renderBolt(into: &segments)
+    }
+
+    func prefillPool(fraction: Float) {
+        pool.prefill(level: fraction * size.y)
     }
 
     func strike(_ strike: LightningStrike, showsBolt: Bool) {
@@ -250,15 +254,15 @@ final class RainSimulation {
             impactOnWindow(drop, hit: hit)
             return true
         }
-        if scene.containsPoint(drop.position, ignoring: drop.ignoredWindowID, inFrontOf: drop.layerOrder) {
-            return true
-        }
         if pool.isEnabled, drop.position.x >= 0, drop.position.x <= size.x {
             let surface = pool.surfaceHeight(atX: drop.position.x)
             if drop.position.y <= surface {
                 impactOnPool(drop, surfaceY: surface)
                 return true
             }
+        }
+        if scene.containsPoint(drop.position, ignoring: drop.ignoredWindowID, inFrontOf: drop.layerOrder) {
+            return true
         }
         return isOutOfBounds(drop)
     }

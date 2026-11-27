@@ -24,6 +24,10 @@ final class PuddleSystem {
     func synchronize(with scene: SurfaceScene) {
         releaseVanishedPuddles(in: scene)
         for surface in scene.surfaces {
+            if surface.isSubmerged {
+                submerge(surface)
+                continue
+            }
             guard let puddle = puddles[surface.id] else {
                 puddles[surface.id] = EdgePuddle(surface: surface, phase: random.value(in: 0...6.28))
                 continue
@@ -71,6 +75,12 @@ final class PuddleSystem {
                 renderStream(stream, scene: scene, time: time, into: &segments)
             }
         }
+    }
+
+    private func submerge(_ surface: WindowSurface) {
+        guard let puddle = puddles[surface.id] else { return }
+        release(puddle, layerOrder: surface.order)
+        puddles[surface.id] = nil
     }
 
     private func releaseVanishedPuddles(in scene: SurfaceScene) {

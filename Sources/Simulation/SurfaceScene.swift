@@ -10,6 +10,7 @@ struct WindowSurface {
     let maxX: Float
     let minY: Float
     let maxY: Float
+    var isSubmerged = false
 
     var width: Float { maxX - minX }
 
@@ -62,13 +63,14 @@ struct SurfaceScene {
     private var intervals: [SIMD2<Float>] = []
     private var remainder: [SIMD2<Float>] = []
 
-    mutating func rebuild(from records: [WindowRecord], screenOrigin: SIMD2<Float>, screenSize: SIMD2<Float>) {
+    mutating func rebuild(from records: [WindowRecord], screenOrigin: SIMD2<Float>, screenSize: SIMD2<Float>, waterline: Float = 0) {
         surfaces.removeAll(keepingCapacity: true)
         spans.removeAll(keepingCapacity: true)
         indexByID.removeAll(keepingCapacity: true)
         for (index, record) in records.enumerated() {
             guard !Self.isBackingWindow(record, behind: records[..<index]) else { continue }
-            guard let surface = Self.localSurface(for: record, origin: screenOrigin, size: screenSize) else { continue }
+            guard var surface = Self.localSurface(for: record, origin: screenOrigin, size: screenSize) else { continue }
+            surface.isSubmerged = waterline > 0 && surface.maxY <= waterline
             indexByID[surface.id] = surfaces.count
             surfaces.append(surface)
         }
@@ -143,6 +145,7 @@ struct SurfaceScene {
 
     private mutating func appendVisibleSpans(ofSurfaceAt index: Int) {
         let surface = surfaces[index]
+        guard !surface.isSubmerged else { return }
         intervals.removeAll(keepingCapacity: true)
         intervals.append(SIMD2(surface.minX, surface.maxX))
         for front in surfaces[..<index] where front.coversEdge(atY: surface.maxY) {
