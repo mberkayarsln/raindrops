@@ -1,5 +1,14 @@
 build/
+DerivedData/
+.build/
+.swiftpm/
+
 Raindrops.xcodeproj/
 Support/Info.plist
-.DS_Store
 xcuserdata/
+*.xcuserstate
+
+.DS_Store
+.idea/
+.vscode/
+.claude/settings.local.json
