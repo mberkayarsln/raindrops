@@ -44,6 +44,7 @@
 
   const play = async (button) => {
     if (!context) {
+      if (navigator.audioSession) navigator.audioSession.type = "playback";
       context = new AudioContextClass();
       output = context.createGain();
       output.gain.value = 0.9;
