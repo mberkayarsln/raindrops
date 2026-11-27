@@ -18,10 +18,6 @@ struct SimulationConfiguration: Equatable {
         isLowPowerModeEnabled ? maximumDropCount : maximumDropCount * 2
     }
 
-    var windAngle: Float {
-        wind * 0.5
-    }
-
     init() {}
 
     init(settings: AppSettings, isLowPowerModeEnabled: Bool) {

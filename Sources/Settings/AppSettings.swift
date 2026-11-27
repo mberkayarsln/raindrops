@@ -69,8 +69,14 @@ enum ScreenSelection: String, CaseIterable {
 final class AppSettings {
     static let didChangeNotification = Notification.Name("RaindropsSettingsDidChange")
     static let dropCountOptions = [1000, 2000, 3000, 4000]
-    static let windRange: ClosedRange<Double> = -1...1
+    static let windRange: ClosedRange<Double> = 0...1
+    static let windLevels: [Double] = [0, 0.25, 0.5, 0.75, 1]
+
+    static func nearestWindLevel(to value: Double) -> Double {
+        windLevels.min { abs($0 - value) < abs($1 - value) } ?? 0
+    }
     static let poolFractionRange: ClosedRange<Double> = 0.02...0.2
+    static let volumeRange: ClosedRange<Double> = 0...1
 
     private enum Key {
         static let isEnabled = "isEnabled"
@@ -81,6 +87,9 @@ final class AppSettings {
         static let poolMaximumFraction = "poolMaximumFraction"
         static let isCursorInteractionEnabled = "isCursorInteractionEnabled"
         static let screenSelection = "screenSelection"
+        static let isSoundEnabled = "isSoundEnabled"
+        static let soundVolume = "soundVolume"
+        static let isStormEnabled = "isStormEnabled"
     }
 
     private let defaults: UserDefaults
@@ -90,12 +99,15 @@ final class AppSettings {
         defaults.register(defaults: [
             Key.isEnabled: true,
             Key.intensity: RainIntensity.rain.rawValue,
-            Key.wind: 0.15,
+            Key.wind: 0.25,
             Key.maximumDropCount: 2000,
             Key.isPoolEnabled: true,
             Key.poolMaximumFraction: 0.08,
             Key.isCursorInteractionEnabled: true,
-            Key.screenSelection: ScreenSelection.allScreens.rawValue
+            Key.screenSelection: ScreenSelection.allScreens.rawValue,
+            Key.isSoundEnabled: true,
+            Key.soundVolume: 0.5,
+            Key.isStormEnabled: true
         ])
     }
 
@@ -110,8 +122,8 @@ final class AppSettings {
     }
 
     var wind: Double {
-        get { defaults.double(forKey: Key.wind).clamped(to: Self.windRange) }
-        set { store(newValue.clamped(to: Self.windRange), forKey: Key.wind) }
+        get { Self.nearestWindLevel(to: abs(defaults.double(forKey: Key.wind))) }
+        set { store(Self.nearestWindLevel(to: newValue), forKey: Key.wind) }
     }
 
     var maximumDropCount: Int {
@@ -137,6 +149,21 @@ final class AppSettings {
     var screenSelection: ScreenSelection {
         get { ScreenSelection(rawValue: defaults.string(forKey: Key.screenSelection) ?? "") ?? .allScreens }
         set { store(newValue.rawValue, forKey: Key.screenSelection) }
+    }
+
+    var isSoundEnabled: Bool {
+        get { defaults.bool(forKey: Key.isSoundEnabled) }
+        set { store(newValue, forKey: Key.isSoundEnabled) }
+    }
+
+    var soundVolume: Double {
+        get { defaults.double(forKey: Key.soundVolume).clamped(to: Self.volumeRange) }
+        set { store(newValue.clamped(to: Self.volumeRange), forKey: Key.soundVolume) }
+    }
+
+    var isStormEnabled: Bool {
+        get { defaults.bool(forKey: Key.isStormEnabled) }
+        set { store(newValue, forKey: Key.isStormEnabled) }
     }
 
     private func store(_ value: Any, forKey key: String) {

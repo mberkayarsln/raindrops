@@ -2,7 +2,7 @@ import AppKit
 
 final class OverlayWindow: NSWindow {
     static var overlayLevel: NSWindow.Level {
-        NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.dockWindow)) - 1)
+        NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.dockWindow)) + 1)
     }
 
     init(screen: NSScreen, joinsAllSpaces: Bool) {

@@ -15,6 +15,8 @@ struct WindowSnapshot {
 
 final class WindowGeometryProvider {
     static let pollInterval: CFTimeInterval = 1.0 / 18.0
+    static let idleInterval: CFTimeInterval = 0.2
+    static let activityHold: CFTimeInterval = 1.5
 
     private let queue = DispatchQueue(label: "app.raindrops.geometry", qos: .userInteractive)
     private let lock = NSLock()
@@ -25,6 +27,8 @@ final class WindowGeometryProvider {
     private var primaryScreenHeight: CGFloat = 0
     private var cachedTime: CFTimeInterval = -1
     private var cachedWindows: [WindowRecord] = []
+    private var lastReadTime: CFTimeInterval = 0
+    private var lastChangeTime: CFTimeInterval = 0
 
     func updateScreenMetrics() {
         let height = NSScreen.screens.first?.frame.height ?? 0
@@ -79,13 +83,40 @@ final class WindowGeometryProvider {
     }
 
     private func poll() {
+        let now = CACurrentMediaTime()
+        guard shouldRead(at: now) else { return }
+        lastReadTime = now
         let height = lock.withLock { primaryScreenHeight }
         let records = readWindows(primaryScreenHeight: height)
-        let snapshot = WindowSnapshot(timestamp: CACurrentMediaTime(), windows: records)
+        let snapshot = WindowSnapshot(timestamp: now, windows: records)
         lock.withLock {
-            previous = latest
+            if let latest, Self.matches(latest.windows, records) {
+                previous = WindowSnapshot(timestamp: now, windows: records)
+            } else {
+                lastChangeTime = now
+                previous = latest
+            }
             latest = snapshot
         }
+    }
+
+    private func shouldRead(at now: CFTimeInterval) -> Bool {
+        if now - lastChangeTime < Self.activityHold || Self.isMouseButtonDown {
+            return true
+        }
+        return now - lastReadTime >= Self.idleInterval - 0.01
+    }
+
+    private static var isMouseButtonDown: Bool {
+        CGEventSource.buttonState(.combinedSessionState, button: .left)
+    }
+
+    private static func matches(_ lhs: [WindowRecord], _ rhs: [WindowRecord]) -> Bool {
+        guard lhs.count == rhs.count else { return false }
+        for index in lhs.indices where lhs[index].id != rhs[index].id || lhs[index].frame != rhs[index].frame {
+            return false
+        }
+        return true
     }
 
     private func readWindows(primaryScreenHeight: CGFloat) -> [WindowRecord] {

@@ -10,6 +10,8 @@ struct SnapshotRequest {
     let isLowPowerModeEnabled: Bool
     let intensity: RainIntensity?
     let usesLiveWindows: Bool
+    let strikeDistance: Float?
+    let wind: Float?
 
     init?(arguments: [String]) {
         guard let index = arguments.firstIndex(of: "--snapshot"), index + 1 < arguments.count else { return nil }
@@ -20,6 +22,12 @@ struct SnapshotRequest {
         usesLiveWindows = arguments.contains("--live-windows")
         intensity = arguments.firstIndex(of: "--intensity").flatMap { index in
             index + 1 < arguments.count ? RainIntensity(rawValue: arguments[index + 1]) : nil
+        }
+        strikeDistance = arguments.firstIndex(of: "--strike").flatMap { index in
+            index + 1 < arguments.count ? Float(arguments[index + 1]) : nil
+        }
+        wind = arguments.firstIndex(of: "--wind").flatMap { index in
+            index + 1 < arguments.count ? Float(arguments[index + 1]) : nil
         }
         scale = 2
     }
@@ -47,12 +55,22 @@ final class SnapshotHarness {
         configuration.intensity = request.intensity ?? configuration.intensity
         configuration.maximumDropCount = 2000
         configuration.isPoolEnabled = true
+        configuration.wind = request.wind ?? configuration.wind
         let simulation = RainSimulation(size: size, configuration: configuration)
         let cost = advance(simulation)
+        strikeIfRequested(simulation)
         print("snapshot frames=\(request.frames) meanStepMs=\(String(format: "%.3f", cost * 1000)) \(simulation.diagnosticSummary)")
         guard let texture = render(simulation) else { return false }
         measureEncoding(simulation)
         return writeImage(from: texture)
+    }
+
+    private func strikeIfRequested(_ simulation: RainSimulation) {
+        guard let distance = request.strikeDistance else { return }
+        simulation.strike(LightningStrike(distance: distance, seed: 42 + UInt64(distance * 1000), boltScreenIndex: 0, reducesFlashing: false), showsBolt: true)
+        for extraFrame in 0..<4 {
+            simulation.step(dt: 1.0 / 60.0, time: Double(request.frames + extraFrame) / 60, windows: scenarioWindows, screenOrigin: .zero, cursor: nil)
+        }
     }
 
     private lazy var scenarioWindows: [WindowRecord] = request.usesLiveWindows ? WindowGeometryProvider.currentWindows() : syntheticWindows
@@ -78,7 +96,7 @@ final class SnapshotHarness {
         var total: CFTimeInterval = 0
         for frameIndex in 0..<request.frames {
             let start = CACurrentMediaTime()
-            simulation.step(dt: 1.0 / 60.0, windows: scenarioWindows, screenOrigin: .zero, cursor: scriptedCursor(frame: frameIndex))
+            simulation.step(dt: 1.0 / 60.0, time: Double(frameIndex) / 60, windows: scenarioWindows, screenOrigin: .zero, cursor: scriptedCursor(frame: frameIndex))
             total += CACurrentMediaTime() - start
         }
         return total / Double(max(request.frames, 1))

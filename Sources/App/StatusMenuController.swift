@@ -2,6 +2,7 @@ import AppKit
 
 final class StatusMenuController: NSObject, NSMenuDelegate {
     private let settings: AppSettings
+    private let strikeLightning: () -> Void
     private let launchAtLogin = LaunchAtLoginController()
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
     private let menu = NSMenu()
@@ -12,13 +13,19 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     private var poolItem = NSMenuItem()
     private var cursorItem = NSMenuItem()
     private var launchItem = NSMenuItem()
+    private var soundItem = NSMenuItem()
+    private var stormItem = NSMenuItem()
+    private var strikeItem = NSMenuItem()
+    private var volumeSlider = NSSlider()
 
     private var windSlider = NSSlider()
     private var poolLevelSlider = NSSlider()
     private var poolLevelLabel = NSTextField(labelWithString: "")
+    private var windLabel = NSTextField(labelWithString: "")
 
-    init(settings: AppSettings) {
+    init(settings: AppSettings, strikeLightning: @escaping () -> Void) {
         self.settings = settings
+        self.strikeLightning = strikeLightning
         super.init()
         buildMenu()
         menu.delegate = self
@@ -44,6 +51,8 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         cursorItem = actionItem("İmleç Etkileşimi", action: #selector(toggleCursor))
         menu.addItem(cursorItem)
         menu.addItem(.separator())
+        addSoundSection()
+        menu.addItem(.separator())
         addScreenSection()
         menu.addItem(.separator())
         launchItem = actionItem("Girişte Başlat", action: #selector(toggleLaunchAtLogin))
@@ -59,7 +68,6 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         for intensity in RainIntensity.allCases {
             let item = actionItem(intensity.title, action: #selector(selectIntensity(_:)))
             item.representedObject = intensity.rawValue
-            item.indentationLevel = 1
             intensityItems[intensity] = item
             menu.addItem(item)
         }
@@ -67,7 +75,10 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
 
     private func addWindSection() {
         windSlider = makeSlider(range: AppSettings.windRange, action: #selector(windChanged(_:)))
-        menu.addItem(sliderItem(title: "Rüzgâr", slider: windSlider, accessory: nil))
+        windSlider.numberOfTickMarks = AppSettings.windLevels.count
+        windSlider.allowsTickMarkValuesOnly = true
+        windSlider.tickMarkPosition = .below
+        menu.addItem(sliderItem(title: "Rüzgâr", slider: windSlider, accessory: windLabel))
     }
 
     private func addDropCountSection() {
@@ -90,12 +101,23 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         menu.addItem(sliderItem(title: "Maksimum Seviye", slider: poolLevelSlider, accessory: poolLevelLabel))
     }
 
+    private func addSoundSection() {
+        soundItem = actionItem("Yağmur Sesi", action: #selector(toggleSound))
+        menu.addItem(soundItem)
+        volumeSlider = makeSlider(range: AppSettings.volumeRange, action: #selector(volumeChanged(_:)))
+        menu.addItem(sliderItem(title: "Ses Düzeyi", slider: volumeSlider, accessory: nil))
+        stormItem = actionItem("Gök Gürültüsü ve Şimşek", action: #selector(toggleStorm))
+        stormItem.toolTip = "Yağmur ve Sağanak modunda ara sıra şimşek çakar. Çisentide fırtına olmaz."
+        menu.addItem(stormItem)
+        strikeItem = actionItem("Şimdi Şimşek Çaktır", action: #selector(strikeNow))
+        menu.addItem(strikeItem)
+    }
+
     private func addScreenSection() {
         menu.addItem(headerItem("Ekranlar"))
         for selection in ScreenSelection.allCases {
             let item = actionItem(selection.title, action: #selector(selectScreens(_:)))
             item.representedObject = selection.rawValue
-            item.indentationLevel = 1
             screenItems[selection] = item
             menu.addItem(item)
         }
@@ -121,19 +143,24 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     }
 
     private func sliderItem(title: String, slider: NSSlider, accessory: NSTextField?) -> NSMenuItem {
-        let container = NSView(frame: NSRect(x: 0, y: 0, width: 240, height: 46))
+        let width = SliderLayout.width
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: width, height: 46))
+        container.autoresizingMask = [.width]
         let label = NSTextField(labelWithString: title)
         label.font = .menuFont(ofSize: 0)
         label.textColor = .secondaryLabelColor
-        label.frame = NSRect(x: 20, y: 24, width: 140, height: 16)
-        slider.frame = NSRect(x: 18, y: 4, width: 204, height: 20)
+        label.frame = NSRect(x: SliderLayout.textLeading, y: 24, width: 150, height: 16)
+        let sliderHeight: CGFloat = slider.numberOfTickMarks > 0 ? 24 : 20
+        slider.frame = NSRect(x: SliderLayout.sliderLeading, y: 24 - sliderHeight, width: width - SliderLayout.sliderLeading - SliderLayout.trailing, height: sliderHeight)
+        slider.autoresizingMask = [.width]
         container.addSubview(label)
         container.addSubview(slider)
         if let accessory {
             accessory.font = .menuFont(ofSize: 0)
             accessory.textColor = .secondaryLabelColor
             accessory.alignment = .right
-            accessory.frame = NSRect(x: 160, y: 24, width: 62, height: 16)
+            accessory.frame = NSRect(x: width - SliderLayout.trailing - 62, y: 24, width: 62, height: 16)
+            accessory.autoresizingMask = [.minXMargin]
             container.addSubview(accessory)
         }
         let item = NSMenuItem()
@@ -149,11 +176,27 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         poolItem.state = settings.isPoolEnabled ? .on : .off
         cursorItem.state = settings.isCursorInteractionEnabled ? .on : .off
         launchItem.state = launchAtLogin.isEnabled ? .on : .off
+        soundItem.state = settings.isSoundEnabled ? .on : .off
+        volumeSlider.doubleValue = settings.soundVolume
+        volumeSlider.isEnabled = settings.isSoundEnabled
+        stormItem.state = settings.isStormEnabled ? .on : .off
+        strikeItem.isEnabled = settings.isEnabled && settings.isStormEnabled
         windSlider.doubleValue = settings.wind
+        updateWindLabel()
         poolLevelSlider.doubleValue = settings.poolMaximumFraction
         poolLevelSlider.isEnabled = settings.isPoolEnabled
         updatePoolLevelLabel()
         updateStatusIcon()
+    }
+
+    private func updateWindLabel() {
+        windLabel.stringValue = Self.windDescription(for: settings.wind)
+    }
+
+    private static func windDescription(for wind: Double) -> String {
+        let titles = ["Sakin", "Hafif", "Orta", "Sert", "Fırtına"]
+        let index = AppSettings.windLevels.firstIndex(of: AppSettings.nearestWindLevel(to: wind)) ?? 0
+        return titles[min(index, titles.count - 1)]
     }
 
     private func updatePoolLevelLabel() {
@@ -192,6 +235,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
 
     @objc private func windChanged(_ sender: NSSlider) {
         settings.wind = sender.doubleValue
+        updateWindLabel()
     }
 
     @objc private func poolLevelChanged(_ sender: NSSlider) {
@@ -209,6 +253,24 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         refreshState()
     }
 
+    @objc private func toggleSound() {
+        settings.isSoundEnabled.toggle()
+        refreshState()
+    }
+
+    @objc private func volumeChanged(_ sender: NSSlider) {
+        settings.soundVolume = sender.doubleValue
+    }
+
+    @objc private func toggleStorm() {
+        settings.isStormEnabled.toggle()
+        refreshState()
+    }
+
+    @objc private func strikeNow() {
+        strikeLightning()
+    }
+
     @objc private func toggleLaunchAtLogin() {
         launchAtLogin.setEnabled(!launchAtLogin.isEnabled)
         refreshState()
@@ -217,4 +279,11 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     @objc private func quit() {
         NSApp.terminate(nil)
     }
+}
+
+private enum SliderLayout {
+    static let width: CGFloat = 272
+    static let textLeading: CGFloat = 28
+    static let sliderLeading: CGFloat = 30
+    static let trailing: CGFloat = 16
 }

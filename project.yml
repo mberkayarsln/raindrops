@@ -41,4 +41,6 @@ targets:
       configs:
         Release:
           SWIFT_OPTIMIZATION_LEVEL: "-O"
+          SWIFT_ENFORCE_EXCLUSIVITY: "off"
+          OTHER_SWIFT_FLAGS: "-enforce-exclusivity=unchecked"
           SWIFT_COMPILATION_MODE: wholemodule

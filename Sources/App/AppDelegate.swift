@@ -21,7 +21,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         let manager = OverlayManager(settings: settings, context: context)
         overlayManager = manager
-        statusMenuController = StatusMenuController(settings: settings)
+        statusMenuController = StatusMenuController(settings: settings) { [weak manager] in manager?.strikeLightningNow() }
         manager.start()
     }
 

@@ -22,6 +22,7 @@ final class ScreenOverlay: NSObject {
     private var isShown = false
     private var isRunningRequested = false
     private var spaceObserver: NSObjectProtocol?
+    let joinsAllSpaces: Bool
 
     init?(screen: NSScreen, context: MetalContext, geometry: WindowGeometryProvider, configuration: SimulationConfiguration, joinsAllSpaces: Bool) {
         guard let displayID = screen.displayID else { return nil }
@@ -35,6 +36,7 @@ final class ScreenOverlay: NSObject {
         self.maximumFramesPerSecond = max(60, screen.maximumFramesPerSecond)
         self.simulation = simulation
         self.renderer = renderer
+        self.joinsAllSpaces = joinsAllSpaces
         self.window = OverlayWindow(screen: screen, joinsAllSpaces: joinsAllSpaces)
         self.metalView = Self.makeMetalView(size: frame.size, context: context)
         self.diagnostics = FrameDiagnostics(label: "display \(displayID)")
@@ -50,6 +52,19 @@ final class ScreenOverlay: NSObject {
             isLowPowerModeEnabled = configuration.isLowPowerModeEnabled
             updateFrameRateRange()
         }
+    }
+
+    var frame: CGRect {
+        screenFrame
+    }
+
+    var isRendering: Bool {
+        displayLink.map { !$0.isPaused } ?? false
+    }
+
+    func strike(_ strike: LightningStrike, showsBolt: Bool) {
+        guard isRendering else { return }
+        simulation.strike(strike, showsBolt: showsBolt)
     }
 
     func setState(visible: Bool, running: Bool) {
@@ -118,7 +133,7 @@ final class ScreenOverlay: NSObject {
         let dt = frameDelta(at: now)
         renderer.elapsedTime = Float(now - (startTimestamp ?? now))
         let start = CACurrentMediaTime()
-        simulation.step(dt: dt, windows: geometry.windows(at: now), screenOrigin: screenOrigin, cursor: sampleCursor(dt: dt))
+        simulation.step(dt: dt, time: now, windows: geometry.windows(at: now), screenOrigin: screenOrigin, cursor: sampleCursor(dt: dt))
         metalView.draw()
         let cost = CACurrentMediaTime() - start
         diagnostics.record(at: now, simulationCost: cost) { simulation.diagnosticSummary }
