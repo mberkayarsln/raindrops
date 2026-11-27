@@ -7,6 +7,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     private let menu = NSMenu()
     private var toggleItem = NSMenuItem()
     private var intensityItems: [RainIntensity: NSMenuItem] = [:]
+    private var settingsObserver: NSObjectProtocol?
 
     init(settings: AppSettings, openSettings: @escaping () -> Void) {
         self.settings = settings
@@ -15,7 +16,18 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         buildMenu()
         menu.delegate = self
         statusItem.menu = menu
+        settingsObserver = NotificationCenter.default.addObserver(
+            forName: AppSettings.didChangeNotification,
+            object: settings,
+            queue: .main
+        ) { [weak self] _ in
+            self?.refreshState()
+        }
         refreshState()
+    }
+
+    deinit {
+        settingsObserver.map(NotificationCenter.default.removeObserver)
     }
 
     func menuNeedsUpdate(_ menu: NSMenu) {
@@ -55,9 +67,9 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     }
 
     private func updateStatusIcon() {
-        let symbol = settings.isEnabled ? "cloud.rain.fill" : "cloud"
-        let image = NSImage(systemSymbolName: symbol, accessibilityDescription: "Raindrops")
+        let image = NSImage(named: settings.isEnabled ? "RainOn" : "RainOff")
         image?.isTemplate = true
+        image?.accessibilityDescription = settings.isEnabled ? "Raindrops, rain on" : "Raindrops, rain off"
         statusItem.button?.image = image
     }
 
