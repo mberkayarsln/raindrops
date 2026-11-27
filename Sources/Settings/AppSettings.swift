@@ -7,9 +7,9 @@ enum RainIntensity: String, CaseIterable {
 
     var title: String {
         switch self {
-        case .drizzle: return "Çisenti"
-        case .rain: return "Yağmur"
-        case .downpour: return "Sağanak"
+        case .drizzle: return "Drizzle"
+        case .rain: return "Rain"
+        case .downpour: return "Downpour"
         }
     }
 
@@ -60,8 +60,8 @@ enum ScreenSelection: String, CaseIterable {
 
     var title: String {
         switch self {
-        case .allScreens: return "Tüm Ekranlar"
-        case .primaryOnly: return "Ana Ekran (Masaüstü 1)"
+        case .allScreens: return "All Displays"
+        case .primaryOnly: return "Main Display (Desktop 1)"
         }
     }
 }
@@ -71,6 +71,13 @@ final class AppSettings {
     static let dropCountOptions = [1000, 2000, 3000, 4000]
     static let windRange: ClosedRange<Double> = 0...1
     static let windLevels: [Double] = [0, 0.25, 0.5, 0.75, 1]
+    static let windStep = 0.25
+    static let windTitles = ["Calm", "Light", "Moderate", "Strong", "Storm"]
+
+    static func windTitle(for wind: Double) -> String {
+        let index = windLevels.firstIndex(of: nearestWindLevel(to: wind)) ?? 0
+        return windTitles[min(index, windTitles.count - 1)]
+    }
 
     static func nearestWindLevel(to value: Double) -> Double {
         windLevels.min { abs($0 - value) < abs($1 - value) } ?? 0

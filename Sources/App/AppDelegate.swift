@@ -4,6 +4,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let settings = AppSettings()
     private var overlayManager: OverlayManager?
     private var statusMenuController: StatusMenuController?
+    private var settingsWindowController: SettingsWindowController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         guard let context = MetalContext.shared else {
@@ -21,7 +22,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         let manager = OverlayManager(settings: settings, context: context)
         overlayManager = manager
-        statusMenuController = StatusMenuController(settings: settings) { [weak manager] in manager?.strikeLightningNow() }
+        let model = SettingsModel(settings: settings) { [weak manager] in manager?.strikeLightningNow() }
+        let settingsWindow = SettingsWindowController(model: model)
+        settingsWindowController = settingsWindow
+        statusMenuController = StatusMenuController(settings: settings) { [weak settingsWindow] in settingsWindow?.show() }
         manager.start()
     }
 
@@ -31,8 +35,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func presentMetalUnavailableAlert() {
         let alert = NSAlert()
-        alert.messageText = "Metal kullanılamıyor"
-        alert.informativeText = "Raindrops bu Mac'te Metal cihazı bulamadı."
+        alert.messageText = "Metal is unavailable"
+        alert.informativeText = "Raindrops couldn’t find a Metal device on this Mac."
         alert.runModal()
     }
 }
