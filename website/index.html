@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A1220" media="(prefers-color-scheme: dark)">
+<title>Raindrops — Rain for your Mac</title>
+<meta name="description" content="Raindrops is a free, open source menu bar app that makes it rain on your Mac. Drops bead up on window edges, trickle down and pool at the bottom of the screen.">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="styles.css">
+<script src="sounds.js" defer></script>
+</head>
+<body>
+
+<header class="site-header wrap">
+<a class="brand" href="./">Raindrops</a>
+<a class="header-link" href="https://github.com/mberkayarsln/raindrops">
+<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M9 19c-4 1.3-4-2-6-2.5M15 21v-3.4a3 3 0 0 0-.8-2.3c2.7-.3 5.6-1.4 5.6-6.1a4.7 4.7 0 0 0-1.3-3.3 4.4 4.4 0 0 0-.1-3.3s-1-.3-3.4 1.3a11.6 11.6 0 0 0-6 0C5.6 2.3 4.6 2.6 4.6 2.6a4.4 4.4 0 0 0-.1 3.3 4.7 4.7 0 0 0-1.3 3.3c0 4.7 2.9 5.8 5.6 6.1a3 3 0 0 0-.8 2.3V21"/></svg>
+GitHub
+</a>
+</header>
+
+<main>
+
+<section class="hero wrap-narrow">
+<img class="hero-icon" src="assets/icon.svg" width="112" height="112" alt="Raindrops app icon">
+<h1>Raindrops</h1>
+<p class="tagline">Rain for your Mac. It beads up on window edges, trickles down and pools at the bottom of your screen.</p>
+<p class="subline">Lightweight. Open source. Lives in your menu bar.</p>
+<div class="actions">
+<a class="button button-primary" href="https://github.com/mberkayarsln/raindrops/releases/latest">
+<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 4v12M6 11l6 6 6-6M5 20h14"/></svg>
+Download
+</a>
+<a class="button button-secondary" href="https://github.com/mberkayarsln/raindrops">Source code</a>
+</div>
+<p class="requirements">Requires macOS 14 Sonoma or later · Apple Silicon · Version 1.0</p>
+</section>
+
+<section class="wrap showcase">
+<figure class="shot">
+<picture>
+<source media="(prefers-color-scheme: dark)" srcset="assets/lightning-dark-960.jpg 960w, assets/lightning-dark-1920.jpg 1920w" sizes="(min-width: 1008px) 960px, calc(100vw - 48px)">
+<img src="assets/lightning-light-1920.jpg" srcset="assets/lightning-light-960.jpg 960w, assets/lightning-light-1920.jpg 1920w" sizes="(min-width: 1008px) 960px, calc(100vw - 48px)" width="1920" height="1248" alt="A Mac desktop in heavy rain with a lightning bolt striking the pool of water over the Dock" fetchpriority="high">
+</picture>
+</figure>
+</section>
+
+<section class="wrap-medium features" aria-labelledby="why">
+<h2 id="why">Why Raindrops?</h2>
+<div class="feature-grid">
+<article>
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18v14H3zM3 10h18M8 2.5l-.6 2M12 2l-.6 2.2M16 2.5l-.6 2"/></svg>
+<h3>Knows your windows</h3>
+<p>Drops hit the top edges of your windows, bead up and run off the corners.</p>
+</article>
+<article>
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 14c2.5-2 5-2 7.5 0s5 2 7.5 0 3.5-1.6 5-.6M2 19c2.5-2 5-2 7.5 0s5 2 7.5 0 3.5-1.6 5-.6M12 3s-3.5 4-3.5 6.2a3.5 3.5 0 0 0 7 0C15.5 7 12 3 12 3z"/></svg>
+<h3>Pools at the bottom</h3>
+<p>A rippling pool rises along the bottom of the screen, right over the Dock.</p>
+</article>
+<article>
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9zM16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>
+<h3>Live sound</h3>
+<p>Rain, wind and thunder are synthesized as you listen. Nothing is a recording.</p>
+</article>
+<article>
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>
+<h3>Lightning and wind</h3>
+<p>Lightning strikes now and then. Five wind levels push the rain around.</p>
+</article>
+<article>
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6h12v12H6zM9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></svg>
+<h3>Light on resources</h3>
+<p>Drawn with Metal. Pauses while your Mac is locked or asleep.</p>
+</article>
+<article>
+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5M14 4l-4 16"/></svg>
+<h3>Open source</h3>
+<p>Free, with all of the code on GitHub.</p>
+</article>
+</div>
+</section>
+
+<section class="wrap showcase">
+<figure class="shot">
+<picture>
+<source media="(prefers-color-scheme: dark)" srcset="assets/window-dark-960.jpg 960w, assets/window-dark-1920.jpg 1920w" sizes="(min-width: 1008px) 960px, calc(100vw - 48px)">
+<img src="assets/window-light-1920.jpg" srcset="assets/window-light-960.jpg 960w, assets/window-light-1920.jpg 1920w" sizes="(min-width: 1008px) 960px, calc(100vw - 48px)" width="1920" height="1248" alt="Rain running down the front of a System Settings window and dripping off its bottom edge" loading="lazy" decoding="async">
+</picture>
+<figcaption>Rain runs down the front of your windows and drips off their edges.</figcaption>
+</figure>
+</section>
+
+<section class="wrap-narrow listen" aria-labelledby="listen">
+<h2 id="listen">Hear it</h2>
+<p>Every sound in Raindrops is synthesized live on your Mac. These loops were recorded straight from the app.</p>
+<div class="sound-picker" role="group" aria-label="Rain sounds">
+<button class="sound" type="button" data-src="assets/sounds/drizzle.m4a" aria-pressed="false">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path class="play" d="M8 5.5v13l10.5-6.5z"/><path class="pause" d="M8 5h3v14H8zM13 5h3v14h-3z"/></svg>
+Drizzle
+</button>
+<button class="sound" type="button" data-src="assets/sounds/rain.m4a" aria-pressed="false">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path class="play" d="M8 5.5v13l10.5-6.5z"/><path class="pause" d="M8 5h3v14H8zM13 5h3v14h-3z"/></svg>
+Rain
+</button>
+<button class="sound" type="button" data-src="assets/sounds/downpour.m4a" aria-pressed="false">
+<svg viewBox="0 0 24 24" aria-hidden="true"><path class="play" d="M8 5.5v13l10.5-6.5z"/><path class="pause" d="M8 5h3v14H8zM13 5h3v14h-3z"/></svg>
+Downpour
+</button>
+</div>
+<p class="listen-note">Thunder rolls in now and then during Rain and Downpour.</p>
+</section>
+
+<section class="band" aria-labelledby="how">
+<div class="wrap-medium how">
+<h2 id="how">How does it work?</h2>
+<p>Click the drop in your menu bar to start or stop the rain and choose how hard it falls. Wind, the pool and sound are in Settings.</p>
+<div class="menu" role="img" aria-label="The Raindrops menu with Stop Rain, the intensities Drizzle, Rain and Downpour, Settings and Quit">
+<div class="menu-item highlighted">Stop Rain</div>
+<hr>
+<div class="menu-item">Drizzle</div>
+<div class="menu-item">Rain</div>
+<div class="menu-item checked">Downpour</div>
+<hr>
+<div class="menu-item"><span>Settings…</span><span class="menu-value">⌘,</span></div>
+<div class="menu-item"><span>Quit Raindrops</span><span class="menu-value">⌘Q</span></div>
+</div>
+</div>
+</section>
+
+<section class="wrap-narrow faq" aria-labelledby="faq">
+<h2 id="faq">Questions</h2>
+<dl>
+<div>
+<dt>Is it free?</dt>
+<dd>Yes. Raindrops is free and open source.</dd>
+</div>
+<div>
+<dt>Does it block my clicks?</dt>
+<dd>No. The rain layer passes every click through to the windows underneath.</dd>
+</div>
+<div>
+<dt>Can it see what's in my windows?</dt>
+<dd>No. It only reads where your windows are and how big they are.</dd>
+</div>
+<div>
+<dt>Does it run on Intel Macs?</dt>
+<dd>Not yet. It needs an Apple Silicon Mac with macOS 14 or later.</dd>
+</div>
+<div>
+<dt>macOS warns me the first time I open it.</dt>
+<dd>Open System Settings › Privacy &amp; Security and click “Open Anyway” next to Raindrops. You only need to do this once.</dd>
+</div>
+</dl>
+</section>
+
+<section class="wrap-narrow closing">
+<div class="actions">
+<a class="button button-primary" href="https://github.com/mberkayarsln/raindrops/releases/latest">
+<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 4v12M6 11l6 6 6-6M5 20h14"/></svg>
+Download
+</a>
+<a class="button button-secondary" href="https://github.com/mberkayarsln/raindrops">Source code</a>
+</div>
+<p class="requirements">Requires macOS 14 Sonoma or later · Apple Silicon</p>
+</section>
+
+</main>
+
+<footer class="site-footer">
+<div class="wrap footer-inner">
+<span>© 2026 Berkay Arslan</span>
+<nav aria-label="Footer">
+<a href="https://github.com/mberkayarsln/raindrops/releases">Releases</a>
+<a href="https://github.com/mberkayarsln/raindrops/issues">Report an issue</a>
+</nav>
+</div>
+</footer>
+
+</body>
+</html>
