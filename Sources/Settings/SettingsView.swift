@@ -14,6 +14,13 @@ struct SettingsView: View {
                             .frame(width: 64, alignment: .trailing)
                     }
                 }
+                Picker("Direction", selection: binding(\.windDirection)) {
+                    ForEach(WindDirection.allCases, id: \.self) { direction in
+                        Text(direction.title).tag(direction)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .disabled(model.settings.wind == 0)
                 Picker("Drop limit", selection: binding(\.maximumDropCount)) {
                     ForEach(AppSettings.dropCountOptions, id: \.self) { count in
                         Text(verbatim: "\(count)").tag(count)

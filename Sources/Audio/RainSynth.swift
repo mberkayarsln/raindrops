@@ -5,7 +5,8 @@ struct SoundProfile {
     let bedLevel: Float
     let patterRate: Float
     let brightness: Float
-    var wind: Float = 0
+    var windSchedule = WindSchedule.steady(strength: 0)
+    var windBias: Float = 0
 
     static let silent = SoundProfile(bedLevel: 0, patterRate: 0, brightness: 6000)
 
@@ -15,18 +16,20 @@ struct SoundProfile {
         self.brightness = brightness
     }
 
-    init(intensity: RainIntensity, wind: Float = 0) {
+    init(intensity: RainIntensity, windSchedule: WindSchedule = .steady(strength: 0), windDirection: WindDirection = .shifting) {
         switch intensity {
         case .drizzle: self.init(bedLevel: 0.28, patterRate: 30, brightness: 6000)
         case .rain: self.init(bedLevel: 0.55, patterRate: 110, brightness: 8000)
         case .downpour: self.init(bedLevel: 0.9, patterRate: 300, brightness: 11000)
         }
-        self.wind = wind
+        self.windSchedule = windSchedule
+        self.windBias = windDirection.bias
     }
 }
 
 final class RainSynth {
     private static let thunderVoiceCount = 3
+    private static let dripVoiceCount = 2
 
     private let sampleRate: Float
     private let sampleDuration: Float
@@ -49,7 +52,9 @@ final class RainSynth {
     private var thunderVoices: [ThunderVoice]
     private let reverb: StereoReverb
     private var windVoice: WindVoice
-    private var windStrength: SmoothedValue
+    private var windLevel: SmoothedValue
+    private var windBias: SmoothedValue
+    private var dripVoices: [DripVoice]
     private var windControlCountdown = 0
     private var gustSwell: Float = 0
     private var reverbTailSamples = 0
@@ -58,9 +63,13 @@ final class RainSynth {
     private var limiter: SoftLimiter
     private var appliedBrightness: Float = 0
     private var seenThunderSequence = 0
+    private var seenDripSequence = 0
 
     var profile = SoundProfile.silent
     var masterVolume: Float = 0.5
+    var rainLevel: Float = 1
+    private var requestedDripSequence = 0
+    private var requestedDripStrength: Float = 1
     private var requestedThunderSequence = 0
     private var requestedThunderDistance: Float = 0.5
 
@@ -76,7 +85,9 @@ final class RainSynth {
         reverb = StereoReverb(sampleRate: sampleRate)
         reverbTailLength = Int(sampleRate * 6)
         windVoice = WindVoice(sampleRate: sampleRate)
-        windStrength = SmoothedValue(0, smoothingSeconds: 0.7, sampleRate: sampleRate)
+        windLevel = SmoothedValue(0, smoothingSeconds: 0.7, sampleRate: sampleRate)
+        windBias = SmoothedValue(0, smoothingSeconds: 1, sampleRate: sampleRate)
+        dripVoices = Array(repeating: DripVoice(), count: Self.dripVoiceCount)
         limiter = SoftLimiter(sampleRate: sampleRate)
         bedHighpassLeft.setCutoff(320, sampleRate: sampleRate)
         bedHighpassRight.setCutoff(320, sampleRate: sampleRate)
@@ -87,6 +98,11 @@ final class RainSynth {
     func requestThunder(distance: Float) {
         requestedThunderDistance = distance
         requestedThunderSequence &+= 1
+    }
+
+    func requestDrip(strength: Float) {
+        requestedDripStrength = strength
+        requestedDripSequence &+= 1
     }
 
     func render(left: UnsafeMutablePointer<Float>, right: UnsafeMutablePointer<Float>, frames: Int) {
@@ -104,10 +120,12 @@ final class RainSynth {
     }
 
     private func applyParameters() {
-        bedLevel.target = profile.bedLevel
-        patterRate.target = profile.patterRate
+        let level = rainLevel.clamped(to: 0...1)
+        bedLevel.target = profile.bedLevel * level
+        patterRate.target = profile.patterRate * level
         volume.target = masterVolume
-        windStrength.target = min(abs(profile.wind), 1)
+        windLevel.target = level
+        windBias.target = profile.windBias
         if appliedBrightness != profile.brightness {
             appliedBrightness = profile.brightness
             bedLowpassLeft.setCutoff(profile.brightness, sampleRate: sampleRate)
@@ -117,21 +135,40 @@ final class RainSynth {
             seenThunderSequence = requestedThunderSequence
             startThunder(distance: requestedThunderDistance)
         }
+        if seenDripSequence != requestedDripSequence {
+            seenDripSequence = requestedDripSequence
+            startDrip()
+        }
     }
 
     private func updateWindIfNeeded(at time: Double) {
-        let strength = windStrength.next()
+        let level = windLevel.next()
+        let bias = windBias.next()
         windControlCountdown -= 1
         guard windControlCountdown <= 0 else { return }
         windControlCountdown = Self.windControlInterval
-        let sample = WindField(strength: strength).sample(at: time)
-        windVoice.update(with: sample, strength: strength, time: time)
+        let field = WindField(schedule: profile.windSchedule, level: level, bias: bias)
+        let sample = field.sample(at: time)
+        windVoice.update(with: sample, strength: field.strength(at: time), time: time)
         gustSwell = sample.gust
     }
 
     private func startThunder(distance: Float) {
         let index = thunderVoices.firstIndex { !$0.isActive } ?? Int(random.next() % UInt64(thunderVoices.count))
         thunderVoices[index].start(distance: distance, sampleRate: sampleRate, random: &random)
+    }
+
+    private func startDrip() {
+        let index = dripVoices.firstIndex { !$0.isActive } ?? 0
+        dripVoices[index].start(strength: requestedDripStrength, sampleRate: sampleRate, random: &random)
+    }
+
+    private func dripSample() -> SIMD2<Float> {
+        var total = SIMD2<Float>.zero
+        for index in dripVoices.indices where dripVoices[index].isActive {
+            total += dripVoices[index].sample(noise: random.signedUnit())
+        }
+        return total
     }
 
     private func nextSample() -> SIMD2<Float> {
@@ -147,9 +184,10 @@ final class RainSynth {
         tickEnvelope *= tickDecay
         plopEnvelope *= plopDecay
         let thunder = thunderSample()
-        let wet = reverbOutput(for: thunder)
+        let drip = dripSample()
+        let wet = reverbOutput(for: thunder + drip * 1.4)
         let wind = windVoice.isAudible ? windVoice.sample(whiteLeft: random.signedUnit(), whiteRight: random.signedUnit(), whiteShared: random.signedUnit()) : .zero
-        let mix = (bed + tick * 0.5 + plop * 0.8 + wind + thunder * 0.38 + wet * 0.22) * volume.next()
+        let mix = (bed + tick * 0.5 + plop * 0.8 + wind + thunder * 0.38 + drip + wet * 0.22) * volume.next()
         return limiter.process(mix)
     }
 
@@ -165,15 +203,15 @@ final class RainSynth {
         }
     }
 
-    private func reverbOutput(for thunder: SIMD2<Float>) -> SIMD2<Float> {
-        if thunder != .zero {
+    private func reverbOutput(for input: SIMD2<Float>) -> SIMD2<Float> {
+        if input != .zero {
             reverbTailSamples = reverbTailLength
         } else if reverbTailSamples > 0 {
             reverbTailSamples -= 1
         } else {
             return .zero
         }
-        return reverb.process(thunder)
+        return reverb.process(input)
     }
 
     private func thunderSample() -> SIMD2<Float> {

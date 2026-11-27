@@ -8,34 +8,88 @@ struct WindSample {
     static let calm = WindSample(angle: 0, gust: 0, direction: 0)
 }
 
+struct WindSchedule: Equatable {
+    static let response = 1.2
+
+    let startTime: Double
+    let startStrength: Float
+    let targetStrength: Float
+    let startTempoPhase: Double
+    let startGustPhase: Double
+
+    static func steady(strength: Float) -> WindSchedule {
+        WindSchedule(startTime: 0, startStrength: strength, targetStrength: strength, startTempoPhase: 0, startGustPhase: 0)
+    }
+
+    func strength(at time: Double) -> Float {
+        let elapsed = max(time - startTime, 0)
+        return targetStrength + (startStrength - targetStrength) * Float(exp(-Self.response * elapsed))
+    }
+
+    func phases(at time: Double) -> (tempo: Double, gust: Double) {
+        let elapsed = time - startTime
+        let decay = elapsed > 0 ? (1 - exp(-Self.response * elapsed)) / Self.response : elapsed
+        let integral = Double(targetStrength) * elapsed + Double(startStrength - targetStrength) * decay
+        return (startTempoPhase + 0.5 * elapsed + 1.5 * integral, startGustPhase + 0.3 * elapsed + 0.55 * integral)
+    }
+
+    func retargeted(to strength: Float, at time: Double) -> WindSchedule {
+        guard strength != targetStrength else { return self }
+        let current = phases(at: time)
+        return WindSchedule(startTime: time, startStrength: self.strength(at: time), targetStrength: strength, startTempoPhase: current.tempo, startGustPhase: current.gust)
+    }
+}
+
 struct WindField {
     static let maximumAngle: Float = 0.78
 
-    var strength: Float
+    var schedule: WindSchedule
+    var level: Float = 1
+    var bias: Float = 0
+
+    init(schedule: WindSchedule, level: Float = 1, bias: Float = 0) {
+        self.schedule = schedule
+        self.level = level
+        self.bias = bias
+    }
+
+    init(strength: Float, bias: Float = 0) {
+        self.init(schedule: .steady(strength: strength), bias: bias)
+    }
+
+    func strength(at time: Double) -> Float {
+        schedule.strength(at: time) * level
+    }
 
     func sample(at time: Double, x: Float = 0) -> WindSample {
-        let s = strength
+        let base = schedule.strength(at: time)
+        let s = base * level
         guard s > 0.001 else { return .calm }
-        let tempo = Double(0.5 + 1.5 * s)
-        let centerDirection = direction(at: time, tempo: tempo, strength: s)
+        let phase = schedule.phases(at: time)
+        let centerDirection = direction(tempoPhase: phase.tempo, strength: s)
         let travel = Double(1300 + 1700 * s)
-        let localTime = time - Double(x * centerDirection) / travel
-        let localDirection = direction(at: localTime, tempo: tempo, strength: s)
-        let surge = gustSurge(at: localTime, strength: s)
-        let flutter = ValueNoise.fractal(localTime * 2.4, seed: 53, octaves: 2) * 0.07 * s
+        let shift = Double(x * centerDirection) / travel
+        let tempoPhase = phase.tempo - shift * Double(0.5 + 1.5 * base)
+        let gustPhase = phase.gust - shift * Double(0.3 + 0.55 * base)
+        let localDirection = direction(tempoPhase: tempoPhase, strength: s)
+        let surge = gustSurge(phase: gustPhase)
+        let flutter = ValueNoise.fractal((time - shift) * 2.4, seed: 53, octaves: 2) * 0.07 * s
         let angle = Self.maximumAngle * s * localDirection * (0.35 + 0.65 * surge) + flutter
         return WindSample(angle: angle, gust: s * (0.3 + 0.7 * surge), direction: localDirection)
     }
 
-    private func direction(at time: Double, tempo: Double, strength s: Float) -> Float {
-        let prevailing = ValueNoise.fractal(time * 0.04 * tempo, seed: 11, octaves: 2)
-        let swing = ValueNoise.fractal(time * 0.3 * tempo, seed: 23, octaves: 2)
+    private func direction(tempoPhase: Double, strength s: Float) -> Float {
+        let prevailing = ValueNoise.fractal(tempoPhase * 0.04, seed: 11, octaves: 2)
+        let swing = ValueNoise.fractal(tempoPhase * 0.3, seed: 23, octaves: 2)
         let sharpness = 1.4 + 3.2 * s
-        return tanh((prevailing * 1.3 + swing * (0.35 + 0.9 * s)) * sharpness)
+        let shifting = tanh((prevailing * 1.3 + swing * (0.35 + 0.9 * s)) * sharpness)
+        guard abs(bias) > 0.001 else { return shifting }
+        let steady = (bias > 0 ? 1 : -1) * (0.7 + 0.3 * abs(shifting))
+        return shifting + (steady - shifting) * min(abs(bias), 1)
     }
 
-    private func gustSurge(at time: Double, strength s: Float) -> Float {
-        let noise = 0.5 + 0.5 * ValueNoise.fractal(time * Double(0.3 + 0.55 * s), seed: 37, octaves: 3)
+    private func gustSurge(phase: Double) -> Float {
+        let noise = 0.5 + 0.5 * ValueNoise.fractal(phase, seed: 37, octaves: 3)
         return pow(min(max(noise, 0), 1), 1.6)
     }
 }

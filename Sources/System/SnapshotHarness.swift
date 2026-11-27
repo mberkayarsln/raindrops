@@ -59,7 +59,7 @@ final class SnapshotHarness {
         configuration.intensity = request.intensity ?? configuration.intensity
         configuration.maximumDropCount = 2000
         configuration.isPoolEnabled = true
-        configuration.wind = request.wind ?? configuration.wind
+        configuration.windSchedule = .steady(strength: request.wind ?? Float(settings.wind))
         if let poolLevel = request.poolLevel {
             configuration.poolMaximumFraction = max(poolLevel, configuration.poolMaximumFraction)
         }

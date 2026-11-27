@@ -2,7 +2,8 @@ import Foundation
 
 struct SimulationConfiguration: Equatable {
     var intensity: RainIntensity = .rain
-    var wind: Float = 0
+    var windSchedule = WindSchedule.steady(strength: 0)
+    var windDirection = WindDirection.shifting
     var maximumDropCount = 2000
     var isPoolEnabled = true
     var poolMaximumFraction: Float = 0.08
@@ -20,9 +21,10 @@ struct SimulationConfiguration: Equatable {
 
     init() {}
 
-    init(settings: AppSettings, isLowPowerModeEnabled: Bool) {
+    init(settings: AppSettings, isLowPowerModeEnabled: Bool, windSchedule: WindSchedule? = nil) {
         intensity = settings.intensity
-        wind = Float(settings.wind)
+        self.windSchedule = windSchedule ?? .steady(strength: Float(settings.wind))
+        windDirection = settings.windDirection
         maximumDropCount = settings.maximumDropCount
         isPoolEnabled = settings.isPoolEnabled
         poolMaximumFraction = Float(settings.poolMaximumFraction)

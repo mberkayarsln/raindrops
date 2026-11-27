@@ -9,6 +9,7 @@ final class RainSoundEngine {
     private var isActive = false
     private var profile = SoundProfile.silent
     private var volume: Float = 0
+    private var rainLevel: Float = 1
     private var configurationObserver: NSObjectProtocol?
     private var pendingStop: DispatchWorkItem?
 
@@ -40,6 +41,16 @@ final class RainSoundEngine {
         activate()
     }
 
+    func setRainLevel(_ level: Float) {
+        rainLevel = level
+        synth?.rainLevel = level
+    }
+
+    func drip(strength: Float) {
+        guard isActive else { return }
+        synth?.requestDrip(strength: strength)
+    }
+
     func thunder(distance: Float) {
         guard isActive else { return }
         synth?.requestThunder(distance: distance)
@@ -49,12 +60,14 @@ final class RainSoundEngine {
         guard let synth = preparedSynth() else { return }
         synth.profile = profile
         synth.masterVolume = volume
+        synth.rainLevel = rainLevel
         guard !startEngineIfNeeded() else { return }
         FrameDiagnostics.log("audio engine retrying with a rebuilt graph")
         tearDownGraph()
         guard let rebuilt = preparedSynth() else { return }
         rebuilt.profile = profile
         rebuilt.masterVolume = volume
+        rebuilt.rainLevel = rainLevel
         _ = startEngineIfNeeded()
     }
 

@@ -66,6 +66,25 @@ final class ScreenOverlay: NSObject {
         simulation.reset()
     }
 
+    func setRainLevel(_ level: Float) {
+        simulation.rainLevel = level
+    }
+
+    func fadeOut(duration: TimeInterval) {
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = duration
+            context.timingFunction = CAMediaTimingFunction(name: .easeIn)
+            window.animator().alphaValue = 0
+        }
+    }
+
+    func restoreOpacity(duration: TimeInterval = 0) {
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = duration
+            window.animator().alphaValue = 1
+        }
+    }
+
     func strike(_ strike: LightningStrike, showsBolt: Bool) {
         guard isRendering else { return }
         simulation.strike(strike, showsBolt: showsBolt)

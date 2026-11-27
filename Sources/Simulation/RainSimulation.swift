@@ -17,6 +17,9 @@ final class RainSimulation {
     private var liveRainCount = 0
     private var lightning = LightningEffect()
     private var windStrength: Float = 0
+    private var windBias: Float
+    private var appliedRainLevel: Float = 1
+    var rainLevel: Float = 1
     private var windColumns = [WindSample](repeating: .calm, count: RainSimulation.windColumnCount + 1)
     private var splashPush = [Float](repeating: 0, count: RainSimulation.windColumnCount + 1)
     private static let windColumnCount = 24
@@ -25,6 +28,7 @@ final class RainSimulation {
     init(size: SIMD2<Float>, configuration: SimulationConfiguration) {
         self.size = size
         self.configuration = configuration
+        self.windBias = configuration.windDirection.bias
         self.pool = BottomPool(width: size.x, maximumLevel: configuration.poolMaximumFraction * size.y)
         pool.isEnabled = configuration.isPoolEnabled
         drops.reserveCapacity(configuration.maximumDropCount + 512)
@@ -49,6 +53,7 @@ final class RainSimulation {
 
     func step(dt: Float, time clock: Double, windows: [WindowRecord], screenOrigin: SIMD2<Float>, cursor: CursorSample?) {
         time += dt
+        appliedRainLevel += (rainLevel - appliedRainLevel) * min(dt * 2.5, 1)
         lightning.advance(dt: dt)
         updateWind(dt: dt, clock: clock, originX: screenOrigin.x)
         activeCursor = configuration.isCursorInteractionEnabled ? cursor : nil
@@ -66,8 +71,9 @@ final class RainSimulation {
     }
 
     private func updateWind(dt: Float, clock: Double, originX: Float) {
-        windStrength += (configuration.wind - windStrength) * min(dt * 1.5, 1)
-        let field = WindField(strength: windStrength)
+        windBias += (configuration.windDirection.bias - windBias) * min(dt * 1.2, 1)
+        let field = WindField(schedule: configuration.windSchedule, level: appliedRainLevel, bias: windBias)
+        windStrength = field.strength(at: clock)
         for column in windColumns.indices {
             let x = size.x * Float(column) / Float(Self.windColumnCount)
             let sample = field.sample(at: clock, x: originX + x)
@@ -130,6 +136,7 @@ final class RainSimulation {
         lightning = LightningEffect()
         spawnAccumulator = 0
         liveRainCount = 0
+        appliedRainLevel = rainLevel
     }
 
     func prefillPool(fraction: Float) {
@@ -169,7 +176,7 @@ final class RainSimulation {
         let slope = tan(wind(atX: size.x * 0.5).angle)
         let sideFlux = abs(slope) * size.y / max(size.x, 1)
         let sideShare = sideFlux / (1 + sideFlux)
-        let target = configuration.targetDropCount
+        let target = Int((Float(configuration.targetDropCount) * appliedRainLevel).rounded())
         let speeds = configuration.intensity.speedRange
         let meanSpeed = (speeds.lowerBound + speeds.upperBound) * 0.5
         let rate = Float(target) * meanSpeed / (size.y + 80) * (1 + sideFlux)

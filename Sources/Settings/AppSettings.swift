@@ -54,6 +54,28 @@ enum RainIntensity: String, CaseIterable {
     }
 }
 
+enum WindDirection: String, CaseIterable {
+    case left
+    case shifting
+    case right
+
+    var title: String {
+        switch self {
+        case .left: return "Left"
+        case .shifting: return "Shifting"
+        case .right: return "Right"
+        }
+    }
+
+    var bias: Float {
+        switch self {
+        case .left: return -1
+        case .shifting: return 0
+        case .right: return 1
+        }
+    }
+}
+
 enum ScreenSelection: String, CaseIterable {
     case allScreens
     case primaryOnly
@@ -89,6 +111,7 @@ final class AppSettings {
         static let isEnabled = "isEnabled"
         static let intensity = "intensity"
         static let wind = "wind"
+        static let windDirection = "windDirection"
         static let maximumDropCount = "maximumDropCount"
         static let isPoolEnabled = "isPoolEnabled"
         static let poolMaximumFraction = "poolMaximumFraction"
@@ -107,6 +130,7 @@ final class AppSettings {
             Key.isEnabled: true,
             Key.intensity: RainIntensity.rain.rawValue,
             Key.wind: 0.25,
+            Key.windDirection: WindDirection.shifting.rawValue,
             Key.maximumDropCount: 2000,
             Key.isPoolEnabled: true,
             Key.poolMaximumFraction: 0.08,
@@ -131,6 +155,11 @@ final class AppSettings {
     var wind: Double {
         get { Self.nearestWindLevel(to: abs(defaults.double(forKey: Key.wind))) }
         set { store(Self.nearestWindLevel(to: newValue), forKey: Key.wind) }
+    }
+
+    var windDirection: WindDirection {
+        get { WindDirection(rawValue: defaults.string(forKey: Key.windDirection) ?? "") ?? .shifting }
+        set { store(newValue.rawValue, forKey: Key.windDirection) }
     }
 
     var maximumDropCount: Int {
